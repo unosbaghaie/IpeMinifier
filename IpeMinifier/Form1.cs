@@ -77,19 +77,24 @@ namespace IpeMinifier
             var files1 = Directory.GetFiles(basePath, "*.min.js", SearchOption.AllDirectories);
             var files2 = Directory.GetFiles(basePath, "*.min.js.map", SearchOption.AllDirectories);
             var files = files1.ToList().Concat(files2.ToList());
-
+            var count = files.Count();
+            ResetProgress();
+            SetProgress(count, 0);
             foreach (var file in files)
             {
                 if (!file.Contains(".min.js"))
+                {
+                    Increase(count);
                     continue;
+                }
 
                 if (File.Exists(file))
                 {
                     File.Delete(file);
                 }
-
+                Increase(count);
             }
-            MessageBox.Show("It's done");
+            MessageBox.Show("It's done"); ResetProgress();
         }
 
         private void buttonMinify_Click(object sender, EventArgs e)
@@ -106,7 +111,10 @@ namespace IpeMinifier
             {
 
                 if (file.Contains(".min.js"))
+                {
+                    Increase(0);
                     continue;
+                }
 
 
                 var fileName = Path.GetFileName(file);
@@ -115,8 +123,9 @@ namespace IpeMinifier
                 var path = Path.GetDirectoryName(file);
 
                 var minifiedFileName = path + "\\" + fileNameWithoutExtension + ".min" + extension;
-
-
+                var count = files.Count();
+                ResetProgress();
+                SetProgress(count, 0);
                 using (var sw = new StreamWriter(minifiedFileName))
                 {
                     string source = String.Empty;
@@ -156,12 +165,13 @@ namespace IpeMinifier
 
                         File.Move(minifiedFileName, minifiedContentNotFileName);
                     }
+                    Increase(count);
 
 
 
                 }
             }
-            MessageBox.Show("It's done");
+            MessageBox.Show("It's done"); ResetProgress();
         }
 
         private void buttonBrowseFolder_Click(object sender, EventArgs e)
@@ -172,7 +182,22 @@ namespace IpeMinifier
 
             }
         }
-
+        private void Increase(double count)
+        {
+            //double xx = (double)progressBar1.Maximum / count;
+            //progressBar1.Value = progressBar1.Value + (int)xx;
+            progressBar1.Value++;
+        }
+        private void SetProgress(int maximum,int value)
+        {
+            progressBar1.Maximum = maximum;
+            progressBar1.Value= 0;
+        }
+        private void ResetProgress()
+        {
+            progressBar1.Maximum = 0;
+            progressBar1.Value = 0;
+        }
         private void buttonDeleteCSharpFiles_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Are you sure you want to continue?", "Delete cs files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
@@ -182,7 +207,8 @@ namespace IpeMinifier
 
 
             var files = Directory.GetFiles(basePath, "*.cs", SearchOption.AllDirectories);
-
+            ResetProgress(); var count = files.Count();
+            SetProgress(count, 0);
             foreach (var file in files)
             {
 
@@ -191,7 +217,10 @@ namespace IpeMinifier
                     || file.Contains("debug")
                     || file.Contains("release")
                     || file.Contains("properties"))
+                {
+                    Increase(count);
                     continue;
+                }
 
 
                 if (file.EndsWith(".cs"))
@@ -200,8 +229,10 @@ namespace IpeMinifier
                     File.Delete(file);
 
                 }
+                Increase(count);
             }
             MessageBox.Show("It's done");
+            ResetProgress();
         }
     }
 }
