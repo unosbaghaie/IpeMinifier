@@ -167,7 +167,14 @@ namespace IpeMinifier
         {
             //double xx = (double)progressBar1.Maximum / count;
             //progressBar1.Value = progressBar1.Value + (int)xx;
-            progressBar1.Value++;
+            try
+            {
+                if (progressBar1.Value<progressBar1.Maximum)
+                    progressBar1.Value++;
+            }
+            catch 
+            {
+            }
         }
         private void SetProgress(int maximum, int value)
         {
