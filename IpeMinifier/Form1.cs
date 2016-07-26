@@ -22,49 +22,6 @@ namespace IpeMinifier
         private void Form1_Load(object sender, EventArgs e)
         {
             textBox1.Text = @"C:\inetpub\wwwroot\app\Areas";
-
-
-
-
-
-            //}
-
-
-
-
-
-
-
-
-
-
-            //if (File.Exists(args[argc - 1]))
-            //{
-            //    if (File.GetAttributes(args[argc - 1]) == FileAttributes.ReadOnly)
-            //        File.SetAttributes(args[argc - 1], FileAttributes.Normal);
-            //}
-
-            //using (var sw = new StreamWriter(args[argc - 1]))
-            //{
-            //    for (var i = 0; i < argc - 1; ++i)
-            //    {
-            //        string source = String.Empty;
-            //        try
-            //        {
-            //            source = File.ReadAllText(args[i]);
-            //        }
-            //        catch (IOException)
-            //        {
-            //            Console.WriteLine("File \"{0}\" was not found.", args[i]);
-            //            continue;
-            //        }
-
-            //        sw.WriteLine((new Minifier()).MinifyJavaScript(source));
-            //        /* css */
-            //        //sw.WriteLine((new Minifier()).MinifyStyleSheet(source, new CssSettings { ColorNames = CssColor.Hex }));
-            //    }
-            //    sw.Flush();
-            //}
         }
 
         private void buttonDelete_Click(object sender, EventArgs e)
@@ -82,17 +39,15 @@ namespace IpeMinifier
             SetProgress(count, 0);
             foreach (var file in files)
             {
+                Increase(0);
+
                 if (!file.Contains(".min.js"))
-                {
-                    Increase(count);
                     continue;
-                }
 
                 if (File.Exists(file))
                 {
                     File.Delete(file);
                 }
-                Increase(count);
             }
             MessageBox.Show("It's done"); ResetProgress();
         }
@@ -109,12 +64,9 @@ namespace IpeMinifier
 
             foreach (var file in files)
             {
-
+                Increase(0);
                 if (file.Contains(".min.js"))
-                {
-                    Increase(0);
                     continue;
-                }
 
 
                 var fileName = Path.GetFileName(file);
@@ -146,10 +98,7 @@ namespace IpeMinifier
                     sw.Close();
                     sw.Dispose();
 
-
-
-
-
+                    
                     if (checkBoxDeleteAfterMinify.Checked && File.Exists(file))
                     {
                         File.Delete(file);
@@ -165,9 +114,6 @@ namespace IpeMinifier
 
                         File.Move(minifiedFileName, minifiedContentNotFileName);
                     }
-                    Increase(count);
-
-
 
                 }
             }
@@ -182,22 +128,7 @@ namespace IpeMinifier
 
             }
         }
-        private void Increase(double count)
-        {
-            //double xx = (double)progressBar1.Maximum / count;
-            //progressBar1.Value = progressBar1.Value + (int)xx;
-            progressBar1.Value++;
-        }
-        private void SetProgress(int maximum,int value)
-        {
-            progressBar1.Maximum = maximum;
-            progressBar1.Value= 0;
-        }
-        private void ResetProgress()
-        {
-            progressBar1.Maximum = 0;
-            progressBar1.Value = 0;
-        }
+       
         private void buttonDeleteCSharpFiles_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Are you sure you want to continue?", "Delete cs files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
@@ -211,16 +142,13 @@ namespace IpeMinifier
             SetProgress(count, 0);
             foreach (var file in files)
             {
-
+                Increase(0);
                 if (file.Contains("bin") 
                     || file.Contains("obj") 
                     || file.Contains("debug")
                     || file.Contains("release")
                     || file.Contains("properties"))
-                {
-                    Increase(count);
                     continue;
-                }
 
 
                 if (file.EndsWith(".cs"))
@@ -229,10 +157,27 @@ namespace IpeMinifier
                     File.Delete(file);
 
                 }
-                Increase(count);
             }
             MessageBox.Show("It's done");
             ResetProgress();
+        }
+
+
+        private void Increase(double count)
+        {
+            //double xx = (double)progressBar1.Maximum / count;
+            //progressBar1.Value = progressBar1.Value + (int)xx;
+            progressBar1.Value++;
+        }
+        private void SetProgress(int maximum, int value)
+        {
+            progressBar1.Maximum = maximum;
+            progressBar1.Value = 0;
+        }
+        private void ResetProgress()
+        {
+            progressBar1.Maximum = 0;
+            progressBar1.Value = 0;
         }
     }
 }
