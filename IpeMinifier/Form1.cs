@@ -69,6 +69,9 @@ namespace IpeMinifier
 
         private void buttonDelete_Click(object sender, EventArgs e)
         {
+            if (MessageBox.Show("Are you sure you want to continue?", "Delete .min.js min.js.map files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
             var basePath = textBox1.Text.Trim();
 
             var files1 = Directory.GetFiles(basePath, "*.min.js", SearchOption.AllDirectories);
@@ -79,7 +82,7 @@ namespace IpeMinifier
             {
                 if (!file.Contains(".min.js"))
                     continue;
-                
+
                 if (File.Exists(file))
                 {
                     File.Delete(file);
@@ -91,6 +94,9 @@ namespace IpeMinifier
 
         private void buttonMinify_Click(object sender, EventArgs e)
         {
+            if (MessageBox.Show("Are you sure you want to continue?", "Minify .js files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
             var basePath = textBox1.Text.Trim();
 
 
@@ -165,6 +171,37 @@ namespace IpeMinifier
                 textBox1.Text = folderBrowserDialog1.SelectedPath;
 
             }
+        }
+
+        private void buttonDeleteCSharpFiles_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Are you sure you want to continue?", "Delete cs files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
+            var basePath = textBox1.Text.Trim();
+
+
+            var files = Directory.GetFiles(basePath, "*.cs", SearchOption.AllDirectories);
+
+            foreach (var file in files)
+            {
+
+                if (file.Contains("bin") 
+                    || file.Contains("obj") 
+                    || file.Contains("debug")
+                    || file.Contains("release")
+                    || file.Contains("properties"))
+                    continue;
+
+
+                if (file.EndsWith(".cs"))
+                {
+                    if (File.Exists(file))
+                    File.Delete(file);
+
+                }
+            }
+            MessageBox.Show("It's done");
         }
     }
 }
