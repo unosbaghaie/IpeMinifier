@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.DirectoryServices;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -22,7 +24,64 @@ namespace IpeMinifier
         private void Form1_Load(object sender, EventArgs e)
         {
             textBox1.Text = @"C:\inetpub\wwwroot\app\Areas";
+
+
+
+            cmbWebsites.Items.Clear();
+            cmbWebsites.Items.AddRange(enumerateSites());
+            if (cmbWebsites.Items.Count > 0)
+                cmbWebsites.SelectedIndex = 0;
         }
+        private enum eStates
+        {
+            Start = 2,
+            Stop = 4,
+            Pause = 6,
+        }
+
+        private string lastWebsite;
+
+        /// <summary>
+		/// Return a string array of the available website names
+		/// </summary>
+		/// <returns></returns>
+		private string[] enumerateSites()
+        {
+            List<string> siteNames = new List<string>();
+            try
+            {
+                DirectoryEntry root = getDirectoryEntry("IIS://" + txtServer.Text + "/W3SVC");
+                foreach (DirectoryEntry e in root.Children)
+                {
+                    if (e.SchemaClassName == "IIsWebServer")
+                    {
+                        siteNames.Add(e.Properties["ServerComment"].Value.ToString());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Can't enumerate websites");
+                lastWebsite = null;
+                txtServer.Focus();
+                txtServer.SelectAll();
+            }
+            return siteNames.ToArray();
+        }
+        /// <summary>
+		/// Return a DirectoryEntry object for path using optional userId and password
+		/// </summary>
+		/// <param name="path"></param>
+		/// <returns></returns>
+		private DirectoryEntry getDirectoryEntry(string path)
+        {
+            if (txtUserID.Text.Length > 0)
+                return new DirectoryEntry(path, txtUserID.Text, txtPassword.Text);
+            else
+                return new DirectoryEntry(path);
+        }
+
+
 
         private void buttonDelete_Click(object sender, EventArgs e)
         {
@@ -98,7 +157,7 @@ namespace IpeMinifier
                     sw.Close();
                     sw.Dispose();
 
-                    
+
                     if (checkBoxDeleteAfterMinify.Checked && File.Exists(file))
                     {
                         File.Delete(file);
@@ -128,7 +187,7 @@ namespace IpeMinifier
 
             }
         }
-       
+
         private void buttonDeleteCSharpFiles_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Are you sure you want to continue?", "Delete cs files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
@@ -143,8 +202,8 @@ namespace IpeMinifier
             foreach (var file in files)
             {
                 Increase(0);
-                if (file.Contains("bin") 
-                    || file.Contains("obj") 
+                if (file.Contains("bin")
+                    || file.Contains("obj")
                     || file.Contains("debug")
                     || file.Contains("release")
                     || file.Contains("properties"))
@@ -154,7 +213,7 @@ namespace IpeMinifier
                 if (file.EndsWith(".cs"))
                 {
                     if (File.Exists(file))
-                    File.Delete(file);
+                        File.Delete(file);
 
                 }
             }
@@ -169,10 +228,10 @@ namespace IpeMinifier
             //progressBar1.Value = progressBar1.Value + (int)xx;
             try
             {
-                if (progressBar1.Value<progressBar1.Maximum)
+                if (progressBar1.Value < progressBar1.Maximum)
                     progressBar1.Value++;
             }
-            catch 
+            catch
             {
             }
         }
@@ -186,5 +245,144 @@ namespace IpeMinifier
             progressBar1.Maximum = 0;
             progressBar1.Value = 0;
         }
+        /// <summary>
+        /// Set up ID and status of selected website
+        /// </summary>
+        private void cmbWebsites_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            findWebsite(cmbWebsites.SelectedItem.ToString());
+        }
+        /// <summary>
+		/// Lookup a website by name and update the display for the site ID and status
+		/// </summary>
+		/// <param name="siteName"></param>
+		private void findWebsite(string siteName)
+        {
+            string site = getSiteIdByName(siteName);
+            if (site == null)
+            {
+                MessageBox.Show("Website '" + siteName + "' not found", "Error");
+                showStatus(site);
+                return;
+            }
+            lblSite.Text = site;
+            showStatus(site);
+        }
+        /// <summary>
+		/// Show the running/stopped state for the specified site ID
+		/// </summary>
+		/// <param name="siteId">Numeric site ID</param>
+		private void showStatus(string siteId)
+        {
+            string result = "unknown";
+            DirectoryEntry root = getDirectoryEntry("IIS://" + txtServer.Text + "/W3SVC/" + siteId);
+            PropertyValueCollection pvc;
+            pvc = root.Properties["ServerState"];
+            if (pvc.Value != null)
+                result = (pvc.Value.Equals((int)eStates.Start) ? "Running" :
+                          pvc.Value.Equals((int)eStates.Stop) ? "Stopped" :
+                          pvc.Value.Equals((int)eStates.Pause) ? "Paused" :
+                          pvc.Value.ToString());
+            lblStatus.Text = result + " (" + pvc.Value + ")";
+        }
+        /// <summary>
+		/// Find the siteId for a specified website name. This assumes that the website's
+		/// ServerComment property contains the website name.
+		/// </summary>
+		/// <param name="siteName"></param>
+		/// <returns></returns>
+		private string getSiteIdByName(string siteName)
+        {
+            DirectoryEntry root = getDirectoryEntry("IIS://" + txtServer.Text + "/W3SVC");
+            foreach (DirectoryEntry e in root.Children)
+            {
+                if (e.SchemaClassName == "IIsWebServer")
+                {
+                    if (e.Properties["ServerComment"].Value.ToString().Equals(siteName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return e.Name;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            siteInvoke(eStates.Start);
+        }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            siteInvoke(eStates.Stop);
+        }
+        /// <summary>
+		/// Given an eStates of "Start" or "Stop", set the state on the currently
+		/// selected website
+		/// </summary>
+		/// <param name="state">Either eStates.Stop or eStates.Start to stop or start the website</param>
+		private void siteInvoke(eStates state)
+        {
+            string site = getSiteIdByName(cmbWebsites.SelectedItem.ToString());
+            if (site == null)
+            {
+                // on the odd chance that someone removed the website since we
+                // enumerated the list
+                MessageBox.Show("Website '" + cmbWebsites.SelectedItem + "' not found", "Can't " + state + " website");
+                showStatus(site);
+                return;
+            }
+            lblSite.Text = site;
+
+            try
+            {
+                ConnectionOptions connectionOptions = new ConnectionOptions();
+
+                if (txtUserID.Text.Length > 0)
+                {
+                    connectionOptions.Username = txtUserID.Text;
+                    connectionOptions.Password = txtPassword.Text;
+                }
+                else
+                {
+                    connectionOptions.Impersonation = ImpersonationLevel.Impersonate;
+                }
+
+                ManagementScope managementScope =
+                    new ManagementScope(@"\\" + txtServer.Text + @"\root\microsoftiisv2", connectionOptions);
+
+                managementScope.Connect();
+                if (managementScope.IsConnected == false)
+                {
+                    MessageBox.Show("Could not connect to WMI namespace " + managementScope.Path, "Connect Failed");
+                }
+                else
+                {
+                    SelectQuery selectQuery =
+                        new SelectQuery("Select * From IIsWebServer Where Name = 'W3SVC/" + site + "'");
+                    using (ManagementObjectSearcher managementObjectSearcher =
+                            new ManagementObjectSearcher(managementScope, selectQuery))
+                    {
+                        foreach (ManagementObject objMgmt in managementObjectSearcher.Get())
+                            objMgmt.InvokeMethod(state.ToString(), new object[0]);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex.ToString().Contains("Invalid namespace"))
+                {
+                    MessageBox.Show("Invalid Namespace Exception" + Environment.NewLine + Environment.NewLine +
+                                    "This program only works with IIS 6 and later", "Can't " + state + " website");
+                }
+                else
+                {
+                    MessageBox.Show(ex.Message, "Can't " + state + " website");
+                }
+            }
+
+            showStatus(site);
+        }
+
     }
 }
